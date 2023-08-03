@@ -1,0 +1,19 @@
+[data-w-wishlist-control-active] [data-w-wishlist-control-icon] {
+  stroke: red;
+  fill: red;
+}
+
+[data-w-wishlist-link] [data-w-wishlist-link-counter] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+[data-w-wishlist-link-active] [data-w-wishlist-link-counter] {
+  opacity: 1;
+  visibility: visible;
+}
+
+[data-w-wishlist-link-active] [data-w-wishlist-link-icon] {
+  stroke: red;
+  fill: red;
+}
