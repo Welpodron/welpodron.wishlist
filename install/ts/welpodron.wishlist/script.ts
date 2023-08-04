@@ -254,6 +254,50 @@
       this.items.delete(item.toString());
     };
 
+    isStringHTML = (string: string) => {
+      const doc = new DOMParser().parseFromString(string, "text/html");
+      return [...doc.body.childNodes].some((node) => node.nodeType === 1);
+    };
+
+    renderString = ({
+      string,
+      container,
+      config,
+    }: {
+      string: string;
+      container: HTMLElement;
+      config: {
+        replace?: boolean;
+      };
+    }) => {
+      const replace = config.replace;
+      const templateElement = document.createElement("template");
+      templateElement.innerHTML = string;
+      const fragment = templateElement.content;
+      fragment.querySelectorAll("script").forEach((scriptTag) => {
+        const scriptParentNode = scriptTag.parentNode;
+        scriptParentNode?.removeChild(scriptTag);
+        const script = document.createElement("script");
+        script.text = scriptTag.text;
+        // Новое поведение для скриптов
+        if (scriptTag.id) {
+          script.id = scriptTag.id;
+        }
+        scriptParentNode?.append(script);
+      });
+      if (replace) {
+        // омг, фикс для старых браузеров сафари, кринге
+        if (!container.replaceChildren) {
+          container.innerHTML = "";
+          container.appendChild(fragment);
+          return;
+        }
+        return container.replaceChildren(fragment);
+      }
+
+      return container.appendChild(fragment);
+    };
+
     toggle = async ({ args, event }: { args?: unknown; event?: Event }) => {
       // if (this.isLoading) {
       //   return;
@@ -301,21 +345,34 @@
 
         if (bitrixResponse.status === "error") {
           console.error(bitrixResponse);
+
+          const error = bitrixResponse.errors[0];
+
+          if (this.isStringHTML(error.message)) {
+            this.renderString({
+              string: error.message,
+              container: (event?.target as HTMLElement)
+                .parentElement as HTMLElement,
+              config: {
+                replace: true,
+              },
+            });
+          }
         } else {
           responseData = bitrixResponse.data;
 
-          // if (responseData.HTML != null) {
-          //   if (this.isStringHTML(responseData.HTML)) {
-          //     this.renderString({
-          //       string: responseData.HTML,
-          //       container: (event?.target as HTMLElement)
-          //         .parentElement as HTMLElement,
-          //       config: {
-          //         replace: true,
-          //       },
-          //     });
-          //   }
-          // }
+          if (responseData.HTML != null) {
+            if (this.isStringHTML(responseData.HTML)) {
+              this.renderString({
+                string: responseData.HTML,
+                container: (event?.target as HTMLElement)
+                  .parentElement as HTMLElement,
+                config: {
+                  replace: true,
+                },
+              });
+            }
+          }
 
           if (responseData.IN_WISHLIST != null) {
             if (responseData.PRODUCT_ID) {

@@ -9,6 +9,7 @@ use Bitrix\Main\Context;
 use Bitrix\Main\Loader;
 use Bitrix\Main\Web\Cookie;
 use Bitrix\Main\Engine\CurrentUser;
+use Bitrix\Main\Config\Option;
 
 use Welpodron\Wishlist\Utils;
 
@@ -37,6 +38,8 @@ class Receiver extends Controller
     // welpodron:wishlist.Receiver.toggle
     public function toggleAction()
     {
+        global $APPLICATION;
+
         try {
             if (!Loader::includeModule(self::DEFAULT_MODULE_ID)) {
                 throw new \Exception('Модуль ' . self::DEFAULT_MODULE_ID . ' не удалось подключить');
@@ -79,9 +82,21 @@ class Receiver extends Controller
                 $wishlisted = true;
             }
 
+            $templateIncludeResult =  Option::get(self::DEFAULT_MODULE_ID, 'SUCCESS_CONTENT_DEFAULT');
+
+            $successFile = Option::get(self::DEFAULT_MODULE_ID, 'SUCCESS_FILE');
+
+            if ($successFile) {
+                ob_start();
+                $APPLICATION->IncludeFile($successFile, [], ["SHOW_BORDER" => false, "MODE" => "php"]);
+                $templateIncludeResult = ob_get_contents();
+                ob_end_clean();
+            }
+
             $this->addCookie(self::DEFAULT_COOKIE_CODE, $wishlist);
 
             return [
+                'HTML' => $templateIncludeResult,
                 'PRODUCT_ID' => $id,
                 'IN_WISHLIST' => $wishlisted,
                 'WISHLIST_COUNTER' => count($wishlist),
@@ -92,8 +107,29 @@ class Receiver extends Controller
                 return;
             }
 
-            $this->addError(new Error('Ошибка при добавлении в избранное'));
-            return;
+            try {
+                $errorFile = Option::get(self::DEFAULT_MODULE_ID, 'ERROR_FILE');
+
+                if (!$errorFile) {
+                    $this->addError(new Error(Option::get(self::DEFAULT_MODULE_ID, 'ERROR_CONTENT_DEFAULT')));
+                    return;
+                }
+
+                ob_start();
+                $APPLICATION->IncludeFile($errorFile, [], ["SHOW_BORDER" => false, "MODE" => "php"]);
+                $templateIncludeResult = ob_get_contents();
+                ob_end_clean();
+                $this->addError(new Error($templateIncludeResult));
+                return;
+            } catch (\Throwable $th) {
+                if (CurrentUser::get()->isAdmin()) {
+                    $this->addError(new Error($th->getMessage(), $th->getCode()));
+                    return;
+                } else {
+                    $this->addError(new Error(Option::get(self::DEFAULT_MODULE_ID, 'ERROR_CONTENT_DEFAULT')));
+                    return;
+                }
+            }
         }
     }
 }
