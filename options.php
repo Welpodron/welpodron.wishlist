@@ -19,36 +19,56 @@ $arTabs = [
                 'TITLE' => 'Настройки внешнего вида ответа',
                 'OPTIONS' => [
                     [
+                        'NAME' => 'USE_SUCCESS_CONTENT',
+                        'LABEL' => 'Использовать успешное сообщение',
+                        'VALUE' => Option::get($moduleId, 'USE_SUCCESS_CONTENT'),
+                        'TYPE' => 'checkbox',
+                    ],
+                    [
                         'NAME' => 'SUCCESS_FILE',
                         'LABEL' => 'PHP файл-шаблон успешного ответа',
                         'VALUE' => Option::get($moduleId, 'SUCCESS_FILE'),
                         'TYPE' => 'file',
+                        'REL'  => 'USE_SUCCESS_CONTENT',
                     ],
                     [
-                        'NAME' => 'ERROR_FILE',
-                        'LABEL' => 'PHP файл-шаблон ответа с ошибкой',
-                        'VALUE' => Option::get($moduleId, 'ERROR_FILE'),
-                        'TYPE' => 'file',
-                    ],
-                    [
-                        'LABEL' => 'Рекомендуется использовать PHP файл-шаблон успешного ответа. Если PHP файл-шаблон успешного ответа не задан, то будет использоваться содержимое успешного ответа по умолчанию',
-                        'TYPE' => 'note'
+                        'LABEL' => 'Если PHP файл-шаблон успешного ответа не задан, то будет использоваться содержимое успешного ответа по умолчанию',
+                        'TYPE' => 'note',
+                        'NAME' => 'SUCCESS_CONTENT_DEFAULT_NOTE',
+                        'REL'  => 'USE_SUCCESS_CONTENT',
                     ],
                     [
                         'NAME' => 'SUCCESS_CONTENT_DEFAULT',
                         'LABEL' => 'Содержимое успешного ответа по умолчанию',
                         'VALUE' => Option::get($moduleId, 'SUCCESS_CONTENT_DEFAULT'),
                         'TYPE' => 'editor',
+                        'REL'  => 'USE_SUCCESS_CONTENT',
                     ],
                     [
-                        'LABEL' => 'Рекомендуется использовать PHP файл-шаблон ответа с ошибкой. Если PHP файл-шаблон ответа с ошибкой не задан, то будет использоваться содержимое ответа с ошибкой по умолчанию',
-                        'TYPE' => 'note'
+                        'NAME' => 'USE_ERROR_CONTENT',
+                        'LABEL' => 'Использовать сообщение об ошибке',
+                        'VALUE' => Option::get($moduleId, 'USE_ERROR_CONTENT'),
+                        'TYPE' => 'checkbox',
+                    ],
+                    [
+                        'NAME' => 'ERROR_FILE',
+                        'LABEL' => 'PHP файл-шаблон ответа с ошибкой',
+                        'VALUE' => Option::get($moduleId, 'ERROR_FILE'),
+                        'TYPE' => 'file',
+                        'REL'  => 'USE_ERROR_CONTENT',
+                    ],
+                    [
+                        'LABEL' => 'Если PHP файл-шаблон ответа с ошибкой не задан, то будет использоваться содержимое ответа с ошибкой по умолчанию',
+                        'TYPE' => 'note',
+                        'NAME' => 'ERROR_CONTENT_DEFAULT_NOTE',
+                        'REL'  => 'USE_ERROR_CONTENT',
                     ],
                     [
                         'NAME' => 'ERROR_CONTENT_DEFAULT',
                         'LABEL' => 'Содержимое ответа с ошибкой по умолчанию',
                         'VALUE' => Option::get($moduleId, 'ERROR_CONTENT_DEFAULT'),
                         'TYPE' => 'editor',
+                        'REL'  => 'USE_ERROR_CONTENT',
                     ],
                 ],
             ]
@@ -97,6 +117,73 @@ $tabControl = new CAdminTabControl("tabControl", $arTabs, true, true);
             </tr>
             <? foreach ($arGroup['OPTIONS'] as $arOption) : ?>
                 <tr>
+                    <? if ($arOption['REL']) : ?>
+                        <script>
+                            (() => {
+                                const init = () => {
+                                    const relation = document.getElementById('<?= $arOption['REL'] ?>');
+
+                                    if (!relation) {
+                                        return;
+                                    }
+
+                                    const element = document.getElementById('<?= $arOption['NAME'] ?>');
+
+                                    if (!element) {
+                                        return;
+                                    }
+
+                                    const tr = element.closest('tr');
+
+                                    const toggle = () => {
+                                        if (relation.type === "checkbox" || relation.type === "radio") {
+                                            if (relation.checked) {
+                                                if (tr) {
+                                                    tr.style.display = '';
+                                                }
+
+                                                element.removeAttribute('disabled');
+                                            } else {
+                                                if (tr) {
+                                                    tr.style.display = 'none';
+                                                }
+
+                                                element.setAttribute('disabled', 'disabled');
+                                            }
+
+                                            return;
+                                        }
+
+                                        if (relation.value) {
+                                            if (tr) {
+                                                tr.style.display = '';
+                                            }
+
+                                            element.removeAttribute('disabled');
+                                        } else {
+                                            if (tr) {
+                                                tr.style.display = 'none';
+                                            }
+
+                                            element.setAttribute('disabled', 'disabled');
+                                        }
+                                    }
+
+                                    toggle();
+
+                                    relation.addEventListener('input', toggle);
+                                }
+
+                                if (document.readyState === 'loading') {
+                                    document.addEventListener('DOMContentLoaded', init, {
+                                        once: true
+                                    });
+                                } else {
+                                    init();
+                                }
+                            })();
+                        </script>
+                    <? endif ?>
                     <td style="width: 40%;">
                         <? if ($arOption['TYPE'] != 'note') : ?>
                             <label for="<?= $arOption['NAME'] ?>">
@@ -106,9 +193,11 @@ $tabControl = new CAdminTabControl("tabControl", $arTabs, true, true);
                     </td>
                     <td>
                         <? if ($arOption['TYPE'] == 'note') : ?>
-                            <div class="adm-info-message">
+                            <div id="<?= $arOption['NAME'] ?>" class="adm-info-message">
                                 <?= $arOption['LABEL'] ?>
                             </div>
+                        <? elseif ($arOption['TYPE'] == 'checkbox') : ?>
+                            <input <? if ($arOption['VALUE'] == "Y") echo "checked "; ?> type="checkbox" name="<?= htmlspecialcharsbx($arOption['NAME']) ?>" id="<?= htmlspecialcharsbx($arOption['NAME']) ?>" value="Y">
                         <? elseif ($arOption['TYPE'] == 'file') : ?>
                             <?
                             CAdminFileDialog::ShowScript(

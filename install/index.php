@@ -20,8 +20,10 @@ class welpodron_wishlist extends CModule
         $this->PARTNER_URI = 'https://github.com/Welpodron';
 
         $this->DEFAULT_OPTIONS = [
+            'USE_SUCCESS_CONTENT' => 'Y',
             'SUCCESS_FILE' => '',
-            'SUCCESS_CONTENT_DEFAULT' => '<p>Товар успешно добавлен в избранное</p>',
+            'SUCCESS_CONTENT_DEFAULT' => '<p>Товар успешно добавлен/удален в/из избранн(оe/го)</p>',
+            'USE_ERROR_CONTENT' => 'Y',
             'ERROR_FILE' => '',
             'ERROR_CONTENT_DEFAULT' => '<p>При обработке Вашего запроса произошла ошибка, повторите попытку позже или свяжитесь с администрацией сайта</p>',
         ];
@@ -93,11 +95,15 @@ class welpodron_wishlist extends CModule
             return false;
         }
 
+        if (!Loader::includeModule('welpodron.core')) {
+            $APPLICATION->ThrowException('Модуль welpodron.core не был найден');
+            return false;
+        }
+
         if (!Loader::includeModule("catalog")) {
             $APPLICATION->ThrowException('Модуль catalog не был найден');
             return false;
         }
-
 
         if (!Loader::includeModule("sale")) {
             $APPLICATION->ThrowException('Модуль sale не был найден');

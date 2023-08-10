@@ -17,6 +17,7 @@ class Receiver extends Controller
 {
     const DEFAULT_MODULE_ID = 'welpodron.wishlist';
     const DEFAULT_COOKIE_CODE = "WISHLIST";
+    const DEFAULT_ERROR_CONTENT = "При обработке Вашего запроса произошла ошибка, повторите попытку позже или свяжитесь с администрацией сайта";
 
     public function configureActions()
     {
@@ -62,7 +63,7 @@ class Receiver extends Controller
                 throw new \Exception('Неверный идентификатор сессии');
             }
 
-            $id = intval($arDataRaw['product_id']);
+            $id = intval($arDataRaw['args']);
 
             $wishlisted = false;
 
@@ -82,25 +83,37 @@ class Receiver extends Controller
                 $wishlisted = true;
             }
 
-            $templateIncludeResult =  Option::get(self::DEFAULT_MODULE_ID, 'SUCCESS_CONTENT_DEFAULT');
-
-            $successFile = Option::get(self::DEFAULT_MODULE_ID, 'SUCCESS_FILE');
-
-            if ($successFile) {
-                ob_start();
-                $APPLICATION->IncludeFile($successFile, [], ["SHOW_BORDER" => false, "MODE" => "php"]);
-                $templateIncludeResult = ob_get_contents();
-                ob_end_clean();
-            }
-
-            $this->addCookie(self::DEFAULT_COOKIE_CODE, $wishlist);
-
-            return [
-                'HTML' => $templateIncludeResult,
+            $arResult = [
                 'PRODUCT_ID' => $id,
                 'IN_WISHLIST' => $wishlisted,
                 'WISHLIST_COUNTER' => count($wishlist),
             ];
+
+            $useSuccessContent = Option::get(self::DEFAULT_MODULE_ID, 'USE_SUCCESS_CONTENT');
+
+            if ($useSuccessContent == 'Y') {
+                $templateIncludeResult =  Option::get(self::DEFAULT_MODULE_ID, 'SUCCESS_CONTENT_DEFAULT');
+
+                $successFile = Option::get(self::DEFAULT_MODULE_ID, 'SUCCESS_FILE');
+
+                if ($successFile) {
+                    ob_start();
+                    $APPLICATION->IncludeFile($successFile, [
+                        'arMutation' => [
+                            'PATH' => $successFile,
+                            'PARAMS' => $arResult,
+                        ]
+                    ], ["SHOW_BORDER" => false, "MODE" => "php"]);
+                    $templateIncludeResult = ob_get_contents();
+                    ob_end_clean();
+                }
+
+                $arResult['HTML'] = $templateIncludeResult;
+            }
+
+            $this->addCookie(self::DEFAULT_COOKIE_CODE, $wishlist);
+
+            return $arResult;
         } catch (\Throwable $th) {
             if (CurrentUser::get()->isAdmin()) {
                 $this->addError(new Error($th->getMessage(), $th->getCode()));
@@ -108,25 +121,37 @@ class Receiver extends Controller
             }
 
             try {
-                $errorFile = Option::get(self::DEFAULT_MODULE_ID, 'ERROR_FILE');
+                $useErrorContent = Option::get(self::DEFAULT_MODULE_ID, 'USE_ERROR_CONTENT');
 
-                if (!$errorFile) {
-                    $this->addError(new Error(Option::get(self::DEFAULT_MODULE_ID, 'ERROR_CONTENT_DEFAULT')));
+                if ($useErrorContent == 'Y') {
+                    $errorFile = Option::get(self::DEFAULT_MODULE_ID, 'ERROR_FILE');
+
+                    if (!$errorFile) {
+                        $this->addError(new Error(Option::get(self::DEFAULT_MODULE_ID, 'ERROR_CONTENT_DEFAULT')));
+                        return;
+                    }
+
+                    ob_start();
+                    $APPLICATION->IncludeFile($errorFile, [
+                        'arMutation' => [
+                            'PATH' => $errorFile,
+                            'PARAMS' => [],
+                        ]
+                    ], ["SHOW_BORDER" => false, "MODE" => "php"]);
+                    $templateIncludeResult = ob_get_contents();
+                    ob_end_clean();
+                    $this->addError(new Error($templateIncludeResult));
                     return;
                 }
 
-                ob_start();
-                $APPLICATION->IncludeFile($errorFile, [], ["SHOW_BORDER" => false, "MODE" => "php"]);
-                $templateIncludeResult = ob_get_contents();
-                ob_end_clean();
-                $this->addError(new Error($templateIncludeResult));
+                $this->addError(new Error(self::DEFAULT_ERROR_CONTENT));
                 return;
             } catch (\Throwable $th) {
                 if (CurrentUser::get()->isAdmin()) {
                     $this->addError(new Error($th->getMessage(), $th->getCode()));
                     return;
                 } else {
-                    $this->addError(new Error(Option::get(self::DEFAULT_MODULE_ID, 'ERROR_CONTENT_DEFAULT')));
+                    $this->addError(new Error(self::DEFAULT_ERROR_CONTENT));
                     return;
                 }
             }
