@@ -1,308 +1,308 @@
 "use strict";
-(() => {
-    if (!window.welpodron) {
-        window.welpodron = {};
-    }
-    if (window.welpodron.wishlist) {
-        return;
-    }
-    class Wishlist {
-        sessid = "";
-        items = new Set();
-        supportedActions = ["toggle"];
-        // isLoading = false;
-        constructor({ sessid, items, config = {} }) {
-            if (Wishlist.instance) {
-                return Wishlist.instance;
-            }
-            this.setSessid(sessid);
-            this.setItems(items);
-            if (document.readyState === "complete" ||
-                document.readyState === "interactive") {
-                this.handleDocumentLoaded();
-            }
-            else {
-                document.addEventListener("DOMContentLoaded", this.handleDocumentLoaded, {
-                    once: true,
-                });
-            }
-            document.removeEventListener("click", this.handleDocumentClick);
-            document.addEventListener("click", this.handleDocumentClick);
-            if (window.JCCatalogItem) {
-                window.JCCatalogItem.prototype.changeInfo =
-                    this.handleOfferChange(window.JCCatalogItem.prototype.changeInfo);
-            }
-            if (window.JCCatalogElement) {
-                window.JCCatalogElement.prototype.changeInfo =
-                    this.handleOfferChange(window.JCCatalogElement.prototype.changeInfo);
-            }
-            Wishlist.instance = this;
+((window) => {
+    if (window.welpodron && window.welpodron.templater) {
+        if (window.welpodron.wishlist) {
+            return;
         }
-        handleDocumentLoaded = () => {
-            document
-                .querySelectorAll("[data-w-wishlist-action-args][data-w-wishlist-action][data-w-wishlist-control]")
-                .forEach((element) => {
-                const actionArgs = element.getAttribute("data-w-wishlist-action-args");
+        const MODULE_BASE = "wishlist";
+        const EVENT_TOGGLE_BEFORE = `welpodron.${MODULE_BASE}:toggle:before`;
+        const EVENT_TOGGLE_AFTER = `welpodron.${MODULE_BASE}:toggle:after`;
+        const ATTRIBUTE_BASE = `data-w-${MODULE_BASE}`;
+        const ATTRIBUTE_RESPONSE = `${ATTRIBUTE_BASE}-response`;
+        const ATTRIBUTE_CONTROL = `${ATTRIBUTE_BASE}-control`;
+        const ATTRIBUTE_CONTROL_ACTIVE = `${ATTRIBUTE_CONTROL}-active`;
+        const ATTRIBUTE_CONTROL_LABEL = `${ATTRIBUTE_CONTROL}-label`;
+        const ATTRIBUTE_LINK = `${ATTRIBUTE_BASE}-link`;
+        const ATTRIBUTE_LINK_COUNTER = `${ATTRIBUTE_LINK}-counter`;
+        const ATTRIBUTE_LINK_ACTIVE = `${ATTRIBUTE_LINK}-active`;
+        const ATTRIBUTE_ACTION = `${ATTRIBUTE_BASE}-action`;
+        const ATTRIBUTE_ACTION_ARGS = `${ATTRIBUTE_ACTION}-args`;
+        const ATTRIBUTE_ACTION_FLUSH = `${ATTRIBUTE_ACTION}-flush`;
+        class Wishlist {
+            sessid = "";
+            items = new Set();
+            supportedActions = ["toggle"];
+            constructor({ sessid, items, config = {} }) {
+                if (Wishlist.instance) {
+                    Wishlist.instance.sessid = sessid;
+                    return Wishlist.instance;
+                }
+                this.setSessid(sessid);
+                this.setItems(items);
+                if (document.readyState === "loading") {
+                    document.addEventListener("DOMContentLoaded", this.handleDocumentLoaded, {
+                        once: true,
+                    });
+                }
+                else {
+                    this.handleDocumentLoaded();
+                }
+                document.removeEventListener("click", this.handleDocumentClick);
+                document.addEventListener("click", this.handleDocumentClick);
+                if (window.JCCatalogItem) {
+                    window.JCCatalogItem.prototype.changeInfo =
+                        this.handleOfferChange(window.JCCatalogItem.prototype.changeInfo);
+                }
+                if (window.JCCatalogElement) {
+                    window.JCCatalogElement.prototype.changeInfo =
+                        this.handleOfferChange(window.JCCatalogElement.prototype.changeInfo);
+                }
+                Wishlist.instance = this;
+            }
+            handleDocumentLoaded = () => {
+                document
+                    .querySelectorAll(`[${ATTRIBUTE_CONTROL}][${ATTRIBUTE_ACTION}][${ATTRIBUTE_ACTION_ARGS}]`)
+                    .forEach((element) => {
+                    const actionArgs = element.getAttribute(ATTRIBUTE_ACTION_ARGS);
+                    if (!actionArgs) {
+                        return;
+                    }
+                    const labels = element.querySelectorAll(`[${ATTRIBUTE_CONTROL_LABEL}]`);
+                    if (this.items.has(actionArgs)) {
+                        element.setAttribute(ATTRIBUTE_CONTROL_ACTIVE, "");
+                        labels.forEach((label) => {
+                            label.textContent = "В избранном";
+                        });
+                    }
+                    else {
+                        element.removeAttribute(ATTRIBUTE_CONTROL_ACTIVE);
+                        labels.forEach((label) => {
+                            label.textContent = "В избранное";
+                        });
+                    }
+                });
+            };
+            handleDocumentClick = (event) => {
+                let { target } = event;
+                if (!target) {
+                    return;
+                }
+                target = target.closest(`[${ATTRIBUTE_CONTROL}][${ATTRIBUTE_ACTION}]`);
+                if (!target) {
+                    return;
+                }
+                const action = target.getAttribute(ATTRIBUTE_ACTION);
+                const actionArgs = target.getAttribute(ATTRIBUTE_ACTION_ARGS);
                 if (!actionArgs) {
                     return;
                 }
-                const labels = element.querySelectorAll("[data-w-wishlist-control-label]");
-                if (this.items.has(actionArgs)) {
-                    element.setAttribute("data-w-wishlist-control-active", "");
-                    labels.forEach((label) => {
-                        label.textContent = "В избранном";
+                const actionFlush = target.getAttribute(ATTRIBUTE_ACTION_FLUSH);
+                if (!actionFlush) {
+                    event.preventDefault();
+                }
+                if (!action || !this.supportedActions.includes(action)) {
+                    return;
+                }
+                const actionFunc = this[action];
+                if (actionFunc instanceof Function) {
+                    return actionFunc({
+                        args: actionArgs,
+                        event,
                     });
                 }
-                else {
-                    element.removeAttribute("data-w-wishlist-control-active");
-                    labels.forEach((label) => {
-                        label.textContent = "В избранное";
-                    });
-                }
-            });
-        };
-        handleDocumentClick = (event) => {
-            let { target } = event;
-            if (!target) {
-                return;
-            }
-            target = target.closest(`[data-w-wishlist-action-args][data-w-wishlist-action][data-w-wishlist-control]`);
-            if (!target) {
-                return;
-            }
-            const action = target.getAttribute("data-w-wishlist-action");
-            const actionArgs = target.getAttribute("data-w-wishlist-action-args");
-            if (!actionArgs) {
-                return;
-            }
-            const actionFlush = target.getAttribute("data-w-wishlist-action-flush");
-            if (!actionFlush) {
-                event.preventDefault();
-            }
-            if (!action || !this.supportedActions.includes(action)) {
-                return;
-            }
-            const actionFunc = this[action];
-            if (actionFunc instanceof Function) {
-                return actionFunc({
-                    args: actionArgs,
-                    event,
-                });
-            }
-        };
-        handleOfferChange = (func) => {
-            const self = this;
-            return function () {
-                let beforeId = this.productType === 3
-                    ? this.offerNum > -1
-                        ? this.offers[this.offerNum].ID
-                        : 0
-                    : this.product.id;
-                let afterId = -1;
-                let index = -1;
-                let boolOneSearch = true;
-                for (let i = 0; i < this.offers.length; i++) {
-                    boolOneSearch = true;
-                    for (let j in this.selectedValues) {
-                        if (this.selectedValues[j] !== this.offers[i].TREE[j]) {
-                            boolOneSearch = false;
+            };
+            handleOfferChange = (func) => {
+                const self = this;
+                return function () {
+                    let beforeId = this.productType === 3
+                        ? this.offerNum > -1
+                            ? this.offers[this.offerNum].ID
+                            : 0
+                        : this.product.id;
+                    let afterId = -1;
+                    let index = -1;
+                    let boolOneSearch = true;
+                    for (let i = 0; i < this.offers.length; i++) {
+                        boolOneSearch = true;
+                        for (let j in this.selectedValues) {
+                            if (this.selectedValues[j] !== this.offers[i].TREE[j]) {
+                                boolOneSearch = false;
+                                break;
+                            }
+                        }
+                        if (boolOneSearch) {
+                            index = i;
                             break;
                         }
                     }
-                    if (boolOneSearch) {
-                        index = i;
-                        break;
+                    if (index > -1) {
+                        afterId = this.offers[index].ID;
                     }
-                }
-                if (index > -1) {
-                    afterId = this.offers[index].ID;
-                }
-                else {
-                    afterId = this.product.id;
-                }
-                if (beforeId && afterId && beforeId !== afterId) {
-                    document
-                        .querySelectorAll(`[data-w-wishlist-action-args="${beforeId}"][data-w-wishlist-action][data-w-wishlist-control]`)
-                        .forEach((element) => {
-                        const actionArgs = element.getAttribute("data-w-wishlist-action-args");
-                        if (!actionArgs) {
-                            return;
-                        }
-                        element.setAttribute("data-w-wishlist-action-args", afterId.toString());
-                        const labels = element.querySelectorAll("[data-w-wishlist-control-label]");
-                        if (self.items.has(afterId.toString())) {
-                            element.setAttribute("data-w-wishlist-control-active", "");
-                            labels.forEach((label) => {
-                                label.textContent = "В избранном";
-                            });
-                        }
-                        else {
-                            element.removeAttribute("data-w-wishlist-control-active");
-                            labels.forEach((label) => {
-                                label.textContent = "В избранное";
-                            });
-                        }
-                    });
-                }
-                func.call(this);
+                    else {
+                        afterId = this.product.id;
+                    }
+                    if (beforeId && afterId && beforeId !== afterId) {
+                        document
+                            .querySelectorAll(`[${ATTRIBUTE_CONTROL}][${ATTRIBUTE_ACTION}][${ATTRIBUTE_ACTION_ARGS}="${beforeId}"]`)
+                            .forEach((element) => {
+                            const actionArgs = element.getAttribute(ATTRIBUTE_ACTION_ARGS);
+                            if (!actionArgs) {
+                                return;
+                            }
+                            element.setAttribute(ATTRIBUTE_ACTION_ARGS, afterId.toString());
+                            const labels = element.querySelectorAll(`[${ATTRIBUTE_CONTROL_LABEL}]`);
+                            if (self.items.has(afterId.toString())) {
+                                element.setAttribute(ATTRIBUTE_CONTROL_ACTIVE, "");
+                                labels.forEach((label) => {
+                                    label.textContent = "В избранном";
+                                });
+                            }
+                            else {
+                                element.removeAttribute(ATTRIBUTE_CONTROL_ACTIVE);
+                                labels.forEach((label) => {
+                                    label.textContent = "В избранное";
+                                });
+                            }
+                        });
+                    }
+                    func.call(this);
+                };
             };
-        };
-        setSessid = (sessid) => {
-            this.sessid = sessid;
-        };
-        setItems = (items) => {
-            this.items = new Set(items.map((item) => item.toString()));
-        };
-        addItem = (item) => {
-            this.items.add(item.toString());
-        };
-        removeItem = (item) => {
-            this.items.delete(item.toString());
-        };
-        isStringHTML = (string) => {
-            const doc = new DOMParser().parseFromString(string, "text/html");
-            return [...doc.body.childNodes].some((node) => node.nodeType === 1);
-        };
-        renderString = ({ string, container, config, }) => {
-            const replace = config.replace;
-            const templateElement = document.createElement("template");
-            templateElement.innerHTML = string;
-            const fragment = templateElement.content;
-            fragment.querySelectorAll("script").forEach((scriptTag) => {
-                const scriptParentNode = scriptTag.parentNode;
-                scriptParentNode?.removeChild(scriptTag);
-                const script = document.createElement("script");
-                script.text = scriptTag.text;
-                // Новое поведение для скриптов
-                if (scriptTag.id) {
-                    script.id = scriptTag.id;
-                }
-                scriptParentNode?.append(script);
-            });
-            if (replace) {
-                // омг, фикс для старых браузеров сафари, кринге
-                if (!container.replaceChildren) {
-                    container.innerHTML = "";
-                    container.appendChild(fragment);
+            setSessid = (sessid) => {
+                this.sessid = sessid;
+            };
+            setItems = (items) => {
+                this.items = new Set(items.map((item) => item.toString()));
+            };
+            addItem = (item) => {
+                this.items.add(item.toString());
+            };
+            removeItem = (item) => {
+                this.items.delete(item.toString());
+            };
+            toggle = async ({ args, event }) => {
+                if (!args) {
                     return;
                 }
-                return container.replaceChildren(fragment);
-            }
-            return container.appendChild(fragment);
-        };
-        toggle = async ({ args, event }) => {
-            // if (this.isLoading) {
-            //   return;
-            // }
-            if (!args) {
-                return;
-            }
-            const controls = document.querySelectorAll(`[data-w-wishlist-action-args="${args}"][data-w-wishlist-action][data-w-wishlist-control]`);
-            if (!controls) {
-                return;
-            }
-            // this.isLoading = true;
-            controls.forEach((control) => {
-                control.setAttribute("disabled", "");
-            });
-            const data = new FormData();
-            data.set("sessid", this.sessid);
-            data.set("product_id", args);
-            let responseData = {};
-            try {
-                const response = await fetch("/bitrix/services/main/ajax.php?action=welpodron%3Awishlist.Receiver.toggle", {
-                    method: "POST",
-                    body: data,
+                const controls = document.querySelectorAll(`[${ATTRIBUTE_CONTROL}][${ATTRIBUTE_ACTION}][${ATTRIBUTE_ACTION_ARGS}="${args}"]`);
+                controls.forEach((control) => {
+                    control.setAttribute("disabled", "");
                 });
-                if (!response.ok) {
-                    throw new Error(response.statusText);
+                const data = new FormData();
+                // composite and deep cache fix
+                if (window.BX && window.BX.bitrix_sessid) {
+                    this.setSessid(window.BX.bitrix_sessid());
                 }
-                const bitrixResponse = await response.json();
-                if (bitrixResponse.status === "error") {
-                    console.error(bitrixResponse);
-                    const error = bitrixResponse.errors[0];
-                    if (this.isStringHTML(error.message)) {
-                        this.renderString({
+                data.set("sessid", this.sessid);
+                data.set("args", args);
+                let dispatchedEvent = new CustomEvent(EVENT_TOGGLE_BEFORE, {
+                    bubbles: true,
+                    cancelable: false,
+                });
+                document.dispatchEvent(dispatchedEvent);
+                let responseData = {};
+                try {
+                    const response = await fetch("/bitrix/services/main/ajax.php?action=welpodron%3Awishlist.Receiver.toggle", {
+                        method: "POST",
+                        body: data,
+                    });
+                    if (!response.ok) {
+                        throw new Error(response.statusText);
+                    }
+                    const bitrixResponse = await response.json();
+                    if (bitrixResponse.status === "error") {
+                        console.error(bitrixResponse);
+                        const error = bitrixResponse.errors[0];
+                        if (!event || !event?.target) {
+                            return;
+                        }
+                        const target = event.target.closest(`[${ATTRIBUTE_CONTROL}][${ATTRIBUTE_ACTION}]`);
+                        if (!target || !target.parentElement) {
+                            return;
+                        }
+                        let div = target.parentElement.querySelector(`[${ATTRIBUTE_RESPONSE}]`);
+                        if (!div) {
+                            div = document.createElement("div");
+                            div.setAttribute(ATTRIBUTE_RESPONSE, "");
+                            target.parentElement.appendChild(div);
+                        }
+                        window.welpodron.templater.renderHTML({
                             string: error.message,
-                            container: (event?.target)
-                                .parentElement,
+                            container: div,
                             config: {
                                 replace: true,
                             },
                         });
                     }
-                }
-                else {
-                    responseData = bitrixResponse.data;
-                    if (responseData.HTML != null) {
-                        if (this.isStringHTML(responseData.HTML)) {
-                            this.renderString({
-                                string: responseData.HTML,
-                                container: (event?.target)
-                                    .parentElement,
-                                config: {
-                                    replace: true,
-                                },
+                    else {
+                        responseData = bitrixResponse.data;
+                        if (responseData.HTML != null) {
+                            if (event && event?.target) {
+                                const target = event.target.closest(`[${ATTRIBUTE_CONTROL}][${ATTRIBUTE_ACTION}]`);
+                                if (target && target.parentElement) {
+                                    let div = target.parentElement.querySelector(`[${ATTRIBUTE_RESPONSE}]`);
+                                    if (!div) {
+                                        div = document.createElement("div");
+                                        div.setAttribute(ATTRIBUTE_RESPONSE, "");
+                                        target.parentElement.appendChild(div);
+                                    }
+                                    window.welpodron.templater.renderHTML({
+                                        string: responseData.HTML,
+                                        container: div,
+                                        config: {
+                                            replace: true,
+                                        },
+                                    });
+                                }
+                            }
+                        }
+                        if (responseData.IN_WISHLIST != null) {
+                            if (responseData.PRODUCT_ID) {
+                                if (responseData.IN_WISHLIST) {
+                                    this.addItem(responseData.PRODUCT_ID);
+                                }
+                                else {
+                                    this.removeItem(responseData.PRODUCT_ID);
+                                }
+                            }
+                            controls.forEach((control) => {
+                                if (responseData.IN_WISHLIST) {
+                                    control.setAttribute(ATTRIBUTE_CONTROL_ACTIVE, "");
+                                }
+                                else {
+                                    control.removeAttribute(ATTRIBUTE_CONTROL_ACTIVE);
+                                }
+                                const labels = control.querySelectorAll(`[${ATTRIBUTE_CONTROL_LABEL}]`);
+                                labels.forEach((label) => {
+                                    label.textContent = responseData.IN_WISHLIST
+                                        ? "В избранном"
+                                        : "В избранное";
+                                });
+                            });
+                        }
+                        if (responseData.WISHLIST_COUNTER != null) {
+                            const links = document.querySelectorAll(`[${ATTRIBUTE_LINK}]`);
+                            links.forEach((link) => {
+                                if (responseData.WISHLIST_COUNTER) {
+                                    link.setAttribute(ATTRIBUTE_LINK_ACTIVE, "");
+                                }
+                                else {
+                                    link.removeAttribute(ATTRIBUTE_LINK_ACTIVE);
+                                }
+                                const counters = link.querySelectorAll(`[${ATTRIBUTE_LINK_COUNTER}]`);
+                                counters.forEach((counter) => {
+                                    counter.textContent = responseData.WISHLIST_COUNTER;
+                                });
                             });
                         }
                     }
-                    if (responseData.IN_WISHLIST != null) {
-                        if (responseData.PRODUCT_ID) {
-                            if (responseData.IN_WISHLIST) {
-                                this.addItem(responseData.PRODUCT_ID);
-                            }
-                            else {
-                                this.removeItem(responseData.PRODUCT_ID);
-                            }
-                        }
-                        controls.forEach((control) => {
-                            if (responseData.IN_WISHLIST) {
-                                control.setAttribute("data-w-wishlist-control-active", "");
-                            }
-                            else {
-                                control.removeAttribute("data-w-wishlist-control-active");
-                            }
-                            const labels = control.querySelectorAll("[data-w-wishlist-control-label]");
-                            labels.forEach((label) => {
-                                label.textContent = responseData.IN_WISHLIST
-                                    ? "В избранном"
-                                    : "В избранное";
-                            });
-                        });
-                    }
-                    if (responseData.WISHLIST_COUNTER != null) {
-                        const links = document.querySelectorAll("[data-w-wishlist-link]");
-                        links.forEach((link) => {
-                            if (responseData.WISHLIST_COUNTER) {
-                                link.setAttribute("data-w-wishlist-link-active", "");
-                            }
-                            else {
-                                link.removeAttribute("data-w-wishlist-link-active");
-                            }
-                            const counters = link.querySelectorAll("[data-w-wishlist-link-counter]");
-                            counters.forEach((counter) => {
-                                counter.textContent = responseData.WISHLIST_COUNTER;
-                            });
-                        });
-                    }
                 }
-            }
-            catch (error) {
-                console.error(error);
-            }
-            finally {
-                const event = new CustomEvent("welpodron.wishlist:toggle:after", {
-                    bubbles: true,
-                    cancelable: false,
-                    detail: responseData,
-                });
-                document.dispatchEvent(event);
-                // this.isLoading = false;
-                controls.forEach((control) => {
-                    control.removeAttribute("disabled");
-                });
-            }
-        };
+                catch (error) {
+                    console.error(error);
+                }
+                finally {
+                    dispatchedEvent = new CustomEvent(EVENT_TOGGLE_AFTER, {
+                        bubbles: true,
+                        cancelable: false,
+                        detail: responseData,
+                    });
+                    document.dispatchEvent(dispatchedEvent);
+                    controls.forEach((control) => {
+                        control.removeAttribute("disabled");
+                    });
+                }
+            };
+        }
+        window.welpodron.wishlist = Wishlist;
     }
-    window.welpodron.wishlist = Wishlist;
-})();
+})(window);
