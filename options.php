@@ -27,6 +27,12 @@ $arTabs = [
                         'TYPE' => 'checkbox',
                     ],
                     [
+                        'NAME' => 'USE_SUCCESS_CONTENT',
+                        'LABEL' => 'Использовать успешное сообщение',
+                        'VALUE' => Option::get($moduleId, 'USE_SUCCESS_CONTENT'),
+                        'TYPE' => 'checkbox',
+                    ],
+                    [
                         'NAME' => 'SUCCESS_FILE',
                         'LABEL' => 'PHP файл-шаблон успешного ответа',
                         'VALUE' => Option::get($moduleId, 'SUCCESS_FILE'),
@@ -39,6 +45,7 @@ $arTabs = [
                         'LABEL' => 'Содержимое успешного ответа по умолчанию',
                         'VALUE' => Option::get($moduleId, 'SUCCESS_CONTENT_DEFAULT'),
                         'TYPE' => 'editor',
+                        'REL'  => 'USE_SUCCESS_CONTENT',
                         'REL'  => 'USE_SUCCESS_CONTENT',
                     ],
                     [
@@ -60,6 +67,7 @@ $arTabs = [
                         'LABEL' => 'Содержимое ответа с ошибкой по умолчанию',
                         'VALUE' => Option::get($moduleId, 'ERROR_CONTENT_DEFAULT'),
                         'TYPE' => 'editor',
+                        'REL'  => 'USE_ERROR_CONTENT',
                         'REL'  => 'USE_ERROR_CONTENT',
                     ],
                 ],
