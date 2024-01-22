@@ -114,8 +114,6 @@ import autoprefixer from 'autoprefixer';
 
     // GENERIC
     content = content.replace(/supportedActions/g, 'spAc');
-    // content = content.replace(/element/, 'el');
-    // content = content.replace(/this.element/g, 'this.el');
     content = content.replace(/\banimation\b/g, 'an');
     // HANDLERS
     content = content.replace(/handleDocumentKeyDown/g, 'hDKD');
@@ -131,8 +129,6 @@ import autoprefixer from 'autoprefixer';
     content = content.replace(/lastFocusedElement/g, 'lFdE');
     content = content.replace(/lastFocusableElement/g, 'lFeE');
     // CAROUSEL
-    content = content.replace(/items\;/, 'its');
-    content = content.replace(/this.items/g, 'this.its');
     content = content.replace(/touchStartX/g, 'tSX');
     content = content.replace(/touchDeltaX/g, 'tDX');
     content = content.replace(/swipeThreshold/g, 'sTh');
