@@ -1,9 +1,6 @@
 import path from 'path';
 import fs from 'fs/promises';
 import UglifyJS from 'uglify-js';
-import postcss from 'postcss';
-import csso from 'postcss-csso';
-import autoprefixer from 'autoprefixer';
 
 (async () => {
   /** @type {Set<string>} */
