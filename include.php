@@ -3,8 +3,8 @@
 use Bitrix\Main\Loader;
 
 CJSCore::RegisterExt('welpodron.wishlist', [
-    'js' => '/bitrix/js/welpodron.wishlist/script.js',
-    'css' => '/bitrix/css/welpodron.wishlist/style.css',
+    'js' => '/local/packages/welpodron.wishlist/iife/wishlist/index.js',
+    'css' => '/local/packages/welpodron.wishlist/css/wishlist/style.css',
     'skip_core' => true,
     'rel' => ['welpodron.core.templater'],
 ]);
