@@ -27,12 +27,6 @@ $arTabs = [
                         'TYPE' => 'checkbox',
                     ],
                     [
-                        'NAME' => 'USE_SUCCESS_CONTENT',
-                        'LABEL' => 'Использовать успешное сообщение',
-                        'VALUE' => Option::get($moduleId, 'USE_SUCCESS_CONTENT'),
-                        'TYPE' => 'checkbox',
-                    ],
-                    [
                         'NAME' => 'SUCCESS_FILE',
                         'LABEL' => 'PHP файл-шаблон успешного ответа',
                         'VALUE' => Option::get($moduleId, 'SUCCESS_FILE'),
