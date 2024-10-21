@@ -1,6 +1,6 @@
-import { templater } from 'welpodron.core';
+import { templater } from "welpodron.core";
 
-const MODULE_BASE = 'wishlist';
+const MODULE_BASE = "wishlist";
 
 const EVENT_TOGGLE_BEFORE = `welpodron.${MODULE_BASE}:toggle:before`;
 const EVENT_TOGGLE_AFTER = `welpodron.${MODULE_BASE}:toggle:after`;
@@ -19,7 +19,7 @@ const ATTRIBUTE_ACTION_FLUSH = `${ATTRIBUTE_ACTION}-flush`;
 
 type _BitrixResponse = {
   data: any;
-  status: 'success' | 'error';
+  status: "success" | "error";
   errors: {
     code: string;
     message: string;
@@ -39,11 +39,11 @@ type WishlistPropsType = {
 };
 
 class Wishlist {
-  sessid = '';
+  sessid = "";
 
   items = new Set<string>();
 
-  supportedActions = ['toggle'];
+  supportedActions = ["toggle"];
 
   constructor({ sessid, items, config = {} }: WishlistPropsType) {
     if ((Wishlist as any).instance) {
@@ -67,16 +67,16 @@ class Wishlist {
     this.setSessid(sessid);
     this.setItems(items);
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', this.handleDocumentLoaded, {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", this.handleDocumentLoaded, {
         once: true,
       });
     } else {
       this.handleDocumentLoaded();
     }
 
-    document.removeEventListener('click', this.handleDocumentClick);
-    document.addEventListener('click', this.handleDocumentClick);
+    document.removeEventListener("click", this.handleDocumentClick);
+    document.addEventListener("click", this.handleDocumentClick);
 
     if ((window as any).JCCatalogItem) {
       (window as any).JCCatalogItem.prototype.changeInfo =
@@ -98,7 +98,7 @@ class Wishlist {
   handleDocumentLoaded = () => {
     document.querySelectorAll(`[${ATTRIBUTE_LINK}]`).forEach((link) => {
       if (this.items.size) {
-        link.setAttribute(ATTRIBUTE_LINK_ACTIVE, '');
+        link.setAttribute(ATTRIBUTE_LINK_ACTIVE, "");
       } else {
         link.removeAttribute(ATTRIBUTE_LINK_ACTIVE);
       }
@@ -123,16 +123,16 @@ class Wishlist {
         const labels = element.querySelectorAll(`[${ATTRIBUTE_CONTROL_LABEL}]`);
 
         if (this.items.has(actionArgs)) {
-          element.setAttribute(ATTRIBUTE_CONTROL_ACTIVE, '');
+          element.setAttribute(ATTRIBUTE_CONTROL_ACTIVE, "");
 
           labels.forEach((label) => {
-            label.textContent = 'В избранном';
+            label.textContent = "В избранном";
           });
         } else {
           element.removeAttribute(ATTRIBUTE_CONTROL_ACTIVE);
 
           labels.forEach((label) => {
-            label.textContent = 'В избранное';
+            label.textContent = "В избранное";
           });
         }
       });
@@ -242,16 +242,16 @@ class Wishlist {
             );
 
             if (self.items.has(afterId.toString())) {
-              element.setAttribute(ATTRIBUTE_CONTROL_ACTIVE, '');
+              element.setAttribute(ATTRIBUTE_CONTROL_ACTIVE, "");
 
               labels.forEach((label) => {
-                label.textContent = 'В избранном';
+                label.textContent = "В избранном";
               });
             } else {
               element.removeAttribute(ATTRIBUTE_CONTROL_ACTIVE);
 
               labels.forEach((label) => {
-                label.textContent = 'В избранное';
+                label.textContent = "В избранное";
               });
             }
           });
@@ -287,7 +287,7 @@ class Wishlist {
     );
 
     controls.forEach((control) => {
-      control.setAttribute('disabled', '');
+      control.setAttribute("disabled", "");
     });
 
     const data = new FormData();
@@ -297,8 +297,8 @@ class Wishlist {
       this.setSessid((window as any).BX.bitrix_sessid());
     }
 
-    data.set('sessid', this.sessid);
-    data.set('args', args as any);
+    data.set("sessid", this.sessid);
+    data.set("args", args as any);
 
     let dispatchedEvent = new CustomEvent(EVENT_TOGGLE_BEFORE, {
       bubbles: true,
@@ -311,9 +311,9 @@ class Wishlist {
 
     try {
       const response = await fetch(
-        '/bitrix/services/main/ajax.php?action=welpodron%3Awishlist.Receiver.toggle',
+        "/bitrix/services/main/ajax.php?action=welpodron%3Awishlist.Receiver.toggle",
         {
-          method: 'POST',
+          method: "POST",
           body: data,
         }
       );
@@ -329,7 +329,7 @@ class Wishlist {
 
       const bitrixResponse: _BitrixResponse = await response.json();
 
-      if (bitrixResponse.status === 'error') {
+      if (bitrixResponse.status === "error") {
         console.error(bitrixResponse);
 
         const error = bitrixResponse.errors[0];
@@ -349,8 +349,8 @@ class Wishlist {
         let div = target.parentElement.querySelector(`[${ATTRIBUTE_RESPONSE}]`);
 
         if (!div) {
-          div = document.createElement('div');
-          div.setAttribute(ATTRIBUTE_RESPONSE, '');
+          div = document.createElement("div");
+          div.setAttribute(ATTRIBUTE_RESPONSE, "");
           target.parentElement.appendChild(div);
         }
 
@@ -376,8 +376,8 @@ class Wishlist {
               );
 
               if (!div) {
-                div = document.createElement('div');
-                div.setAttribute(ATTRIBUTE_RESPONSE, '');
+                div = document.createElement("div");
+                div.setAttribute(ATTRIBUTE_RESPONSE, "");
                 target.parentElement.appendChild(div);
               }
 
@@ -403,7 +403,7 @@ class Wishlist {
 
           controls.forEach((control) => {
             if (responseData.IN_WISHLIST) {
-              control.setAttribute(ATTRIBUTE_CONTROL_ACTIVE, '');
+              control.setAttribute(ATTRIBUTE_CONTROL_ACTIVE, "");
             } else {
               control.removeAttribute(ATTRIBUTE_CONTROL_ACTIVE);
             }
@@ -414,8 +414,8 @@ class Wishlist {
 
             labels.forEach((label) => {
               label.textContent = responseData.IN_WISHLIST
-                ? 'В избранном'
-                : 'В избранное';
+                ? "В избранном"
+                : "В избранное";
             });
           });
         }
@@ -425,7 +425,7 @@ class Wishlist {
 
           links.forEach((link) => {
             if (responseData.WISHLIST_COUNTER) {
-              link.setAttribute(ATTRIBUTE_LINK_ACTIVE, '');
+              link.setAttribute(ATTRIBUTE_LINK_ACTIVE, "");
             } else {
               link.removeAttribute(ATTRIBUTE_LINK_ACTIVE);
             }
@@ -452,9 +452,14 @@ class Wishlist {
       document.dispatchEvent(dispatchedEvent);
 
       controls.forEach((control) => {
-        control.removeAttribute('disabled');
+        control.removeAttribute("disabled");
       });
     }
+  };
+
+  removeEventsListeners = () => {
+    document.removeEventListener("DOMContentLoaded", this.handleDocumentLoaded);
+    document.removeEventListener("click", this.handleDocumentClick);
   };
 }
 
