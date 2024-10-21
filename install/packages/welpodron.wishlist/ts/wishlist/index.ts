@@ -67,17 +67,6 @@ class Wishlist {
     this.setSessid(sessid);
     this.setItems(items);
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", this.handleDocumentLoaded, {
-        once: true,
-      });
-    } else {
-      this.handleDocumentLoaded();
-    }
-
-    document.removeEventListener("click", this.handleDocumentClick);
-    document.addEventListener("click", this.handleDocumentClick);
-
     if ((window as any).JCCatalogItem) {
       (window as any).JCCatalogItem.prototype.changeInfo =
         this.handleOfferChange(
@@ -91,6 +80,9 @@ class Wishlist {
           (window as any).JCCatalogElement.prototype.changeInfo
         );
     }
+
+    this.removeEventsListeners();
+    this.addEventListeners();
 
     (Wishlist as any).instance = this;
   }
@@ -454,6 +446,23 @@ class Wishlist {
       controls.forEach((control) => {
         control.removeAttribute("disabled");
       });
+    }
+  };
+
+  destroy = () => {
+    this.removeEventsListeners();
+    (Wishlist as any).instance = undefined;
+  }
+
+  addEventListeners = () => {
+    document.addEventListener("click", this.handleDocumentClick);
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", this.handleDocumentLoaded, {
+        once: true,
+      });
+    } else {
+      this.handleDocumentLoaded();
     }
   };
 
