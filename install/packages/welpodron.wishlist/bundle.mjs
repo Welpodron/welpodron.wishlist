@@ -1,8 +1,9 @@
 import path from "path";
 import fs from "fs/promises";
-
+import { globSync } from "glob";
+import { fileURLToPath } from "node:url";
 import { rollup } from "rollup";
-import esbuild from "rollup-plugin-esbuild";
+import typescript from "@rollup/plugin-typescript";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 
 (async () => {
@@ -10,12 +11,7 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
   let bundle;
 
   try {
-    await fs.rm(`./es`, {
-      recursive: true,
-      force: true,
-    });
-
-    await fs.rm(`./cjs`, {
+    await fs.rm(`./esm`, {
       recursive: true,
       force: true,
     });
@@ -26,15 +22,25 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
     });
   } catch (_) {}
 
+  const filesMap = Object.fromEntries(
+    globSync("ts/**/*.ts").map((file) => [
+      path.relative(
+        "ts",
+        file.slice(0, file.length - path.extname(file).length)
+      ),
+      fileURLToPath(new URL(file, import.meta.url)),
+    ])
+  );
+
   /** @type {import('rollup').RollupOptions} */
   let inputOptions = {
-    input: `./ts/index.ts`,
+    input: filesMap,
     plugins: [
       nodeResolve({ extensions: [".ts"] }),
-      esbuild({
-        sourceMap: true,
-        target: "esnext",
-        exclude: ["./types", "./es", "./cjs", "./iife"],
+      typescript({
+        declaration: false,
+        declarationDir: undefined,
+        removeComments: true,
       }),
     ],
   };
@@ -42,29 +48,10 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
   /** @type {import('rollup').OutputOptions[]} */
   const outputs = [
     {
-      format: "es",
+      format: "esm",
       entryFileNames: "[name].js",
-      dir: `./es`,
+      dir: "esm",
       preserveModules: true,
-      sourcemap: true,
-      entryFileNames: (chunkInfo) => {
-        if (chunkInfo.name.startsWith("ts/")) {
-          return chunkInfo.name.replace("ts/", "") + ".js";
-        }
-
-        if (chunkInfo.name.includes("node_modules")) {
-          return chunkInfo.name.replace("node_modules", "external") + ".js";
-        }
-
-        return "[name].js";
-      },
-    },
-    {
-      format: "cjs",
-      entryFileNames: "[name].js",
-      dir: `./cjs`,
-      preserveModules: true,
-      sourcemap: true,
       entryFileNames: (chunkInfo) => {
         if (chunkInfo.name.startsWith("ts/")) {
           return chunkInfo.name.replace("ts/", "") + ".js";
@@ -91,55 +78,17 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
   }
 
   // IIFE BUILD
-
-  /** @type {Set<string>} */
-  let files = new Set();
-  /**
-   *
-   * @param {string} dirPath
-   * @param {string} ext
-   * @returns Promise<void>
-   */
-  const walk = async (dirPath, ext) =>
-    Promise.all(
-      await fs.readdir(dirPath, { withFileTypes: true }).then((entries) =>
-        entries.map((entry) => {
-          const childPath = path.join(dirPath, entry.name);
-
-          if (entry.isDirectory()) {
-            return walk(childPath, ext);
-          }
-
-          if (
-            entry.isFile() &&
-            entry.name.endsWith(ext) &&
-            !entry.name.endsWith(".min" + ext)
-          ) {
-            const fileName = path.basename(childPath, ext);
-
-            const parts = fileName.split(".");
-
-            const last = parts.pop();
-
-            if (last !== "min") {
-              files.add(childPath);
-            }
-          }
-        })
-      )
-    );
-
-  await walk(`./ts`, "index.ts");
+  const files = Object.values(filesMap);
 
   for (let file of files) {
     const inputOptions = {
       input: file,
       plugins: [
         nodeResolve({ extensions: [".ts"] }),
-        esbuild({
-          sourceMap: true,
-          target: "esnext",
-          exclude: ["./types", "./es", "./cjs", "./iife"],
+        typescript({
+          declaration: false,
+          declarationDir: undefined,
+          removeComments: true,
         }),
       ],
       external: ["welpodron.core"],
@@ -155,8 +104,6 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
           base: "",
           ext: "js",
         }),
-        //! Велл, у битрикса куча рофлов про сорс мапы при объединении JS файлов и их сжатии, лучше просто отключить и создавать ток для минификации
-        sourcemap: false,
         globals: { "welpodron.core": "window.welpodron" },
       });
     } catch (error) {
